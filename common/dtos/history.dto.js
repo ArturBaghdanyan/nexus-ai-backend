@@ -1,5 +1,9 @@
 export const HistoryDto = (data) => {
-  const { mode, prompt, language, owner, name, result, score } = data; 
+  const { anonId, mode, prompt, language, owner, name, result, score } = data;
+
+  if (!anonId || typeof anonId !== "string" || anonId.trim() === "") {
+    throw new Error("anonId is required and must be a valid string");
+  }
 
   if (!mode || !["url", "code"].includes(mode)) {
     throw new Error("Mode is required and must be either 'url' or 'code'");
@@ -10,6 +14,7 @@ export const HistoryDto = (data) => {
   }
 
   return {
+    anonId: anonId.trim(),
     mode,
     prompt: prompt.trim(),
     language: language ? language.trim() : undefined,

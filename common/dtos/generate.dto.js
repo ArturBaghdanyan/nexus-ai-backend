@@ -1,5 +1,9 @@
 export const GenerateDto = (data) => {
-  const { mode, owner, name, prompt, language } = data;
+  const { anonId, mode, owner, name, prompt, language } = data;
+
+  if (!anonId || typeof anonId !== "string") {
+    throw new Error("anonId is required and must be a string");
+  }
 
   if (!mode || typeof mode !== "string") {
     throw new Error("Mode is required and must be a string");
@@ -23,6 +27,7 @@ export const GenerateDto = (data) => {
   }
 
   return {
+    anonId: anonId.trim(),
     mode: mode.trim(),
     owner: owner ? owner.trim() : null,
     name: name ? name.trim() : null,

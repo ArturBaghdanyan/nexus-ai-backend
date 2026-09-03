@@ -18,6 +18,7 @@ export const AnalyzeController = () => {
         mode,
         prompt,
         language,
+        anonId: req.anonId,
       };
 
       const createRepos = await generateReposity(createRepoData);

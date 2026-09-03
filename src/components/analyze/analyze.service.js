@@ -1,7 +1,7 @@
 import History from "../../../common/entities/history.entity.js";
 import { GenerateDto } from "../../../common/dtos/generate.dto.js";
 import { HistoryDto } from "../../../common/dtos/history.dto.js";
-import { groq } from "../../lib/groq.js";
+import { getGroq } from "../../lib/groq.js";
 import { fetchRepoContext } from "../../lib/github.js";
 
 export const generateReposity = async (createData) => {
@@ -24,6 +24,7 @@ export const generateReposity = async (createData) => {
     }
 
     const validatedData = GenerateDto({
+      anonId: createData.anonId,
       mode: createData.mode,
       owner,
       name,
@@ -60,8 +61,8 @@ export const generateReposity = async (createData) => {
       userContent = `Review this code:\n\n${validatedData.prompt}`;
     }
 
-    const aiResponse = await groq().chat.completions.create({
-      model: "openai/gpt-oss-120b", 
+    const aiResponse = await getGroq().chat.completions.create({
+      model: "openai/gpt-oss-120b",
       messages: [
         {
           role: "system",
@@ -77,6 +78,7 @@ export const generateReposity = async (createData) => {
     const aiReviewResult = aiResponse.choices[0].message.content;
 
     const createHistoryData = HistoryDto({
+      anonId: createData.anonId,
       mode: createData.mode,
       prompt: createData.prompt,
       language: createData.language,
@@ -89,6 +91,16 @@ export const generateReposity = async (createData) => {
     const history = await History.create(createHistoryData);
     return history;
   } catch (err) {
+    if (
+      err.message &&
+      (err.message.includes("API rate limit exceeded") ||
+        err.message.includes("rate limit") ||
+        err.message.includes("quota exhausted"))
+    ) {
+      throw new Error(
+        "GitHub API rate limit exceeded. Please try again later or configure a GitHub token.",
+      );
+    }
     throw new Error(err.message || "Error creating repository in database");
   }
 };

@@ -5,6 +5,8 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import { ApiGateWay } from "./components/api-gateway/api-gateway.js";
+import { anonIdMiddleware } from "./middlewares/anonId.middleware.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 const PORT = process.env.PORT || 3005;
@@ -17,6 +19,9 @@ app.use(
 );
 
 app.use(express.json());
+app.use(cookieParser());
+app.use(anonIdMiddleware);
+
 app.use("/api", ApiGateWay());
 
 mongoose

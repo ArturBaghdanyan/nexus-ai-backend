@@ -2,7 +2,7 @@ import { OpenAI } from "openai";
 
 let _groq;
 
-export const groq = () => {
+export const getGroq = () => {
   if (!_groq) {
     _groq = new OpenAI({
       apiKey: process.env.GROQ_API_KEY,

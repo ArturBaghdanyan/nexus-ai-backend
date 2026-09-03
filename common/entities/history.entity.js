@@ -2,6 +2,7 @@ import mongoose, { Schema } from "mongoose";
 
 const historySchema = new Schema(
   {
+    anonId: { type: String, required: true, index: true },
     mode: {
       type: String,
       enum: ["url", "code"],
