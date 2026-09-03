@@ -1,0 +1,37 @@
+import mongoose, { Schema } from "mongoose";
+
+const historySchema = new Schema(
+  {
+    mode: {
+      type: String,
+      enum: ["url", "code"],
+      required: true,
+    },
+    prompt: {
+      type: String,
+      required: true,
+    },
+    language: {
+      type: String,
+    },
+    owner: {
+      type: String,
+    },
+    name: {
+      type: String,
+    },
+    result: {
+      type: String,
+    },
+    score: {
+      type: Number,
+      default: 0,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+const History = mongoose.model("History", historySchema);
+export default History;
