@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  nexus-ai-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nexus-ai-server
+    env_file:
+      - .env
+    expose:
+      - "3005"
+    depends_on:
+      - redis
+
+  nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: nexus-ai-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - nexus-ai-server
+
+  redis:
+    image: redis:alpine
+    container_name: nexus-ai-redis
+    expose:
+      - "6379"
