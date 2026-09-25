@@ -11,14 +11,18 @@ export const HistoryController = () => {
       const { mode, prompt, language, owner, name, result, score, summary } =
         req.body;
 
+      // Եթե body-ում owner չկա, վերցնում ենք header-ից
+      const visitorOwner = owner || req.headers["x-visitor-id"];
+
       const createHistoryData = {
         mode,
         prompt,
         language,
-        owner,
+        owner: visitorOwner,
         name,
         result,
         score,
+        summary,
       };
 
       const newHistory = await createHistory(createHistoryData);
@@ -28,15 +32,17 @@ export const HistoryController = () => {
         data: newHistory,
       });
     } catch (err) {
-      res.status(400).json({
+      return res.status(400).json({
         success: false,
         error: err.message,
       });
     }
   });
+
   router.get("/", async (req, res) => {
     try {
-      const historyList = await getHistory();
+      const owner = req.headers["x-visitor-id"];
+      const historyList = await getHistory(owner);
 
       return res.status(200).json({
         success: true,
@@ -49,5 +55,6 @@ export const HistoryController = () => {
       });
     }
   });
+
   return router;
 };

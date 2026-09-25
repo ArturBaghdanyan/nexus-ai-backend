@@ -21,14 +21,15 @@ export const HistoryService = () => {
     }
   };
 
-  const getHistory = async () => {
+  const getHistory = async (owner) => {
     try {
-      const historyList = await History.find().sort({ createdAt: -1 });
+      if (!owner) return [];
+
+      const historyList = await History.find({ owner }).sort({ createdAt: -1 });
       return historyList;
     } catch (err) {
       throw new Error(err.message || "Error fetching history from database");
     }
   };
-
   return { createHistory, getHistory };
 };
