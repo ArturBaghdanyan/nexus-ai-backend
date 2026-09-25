@@ -13,6 +13,8 @@ export const HistoryService = () => {
         owner: validatedData.owner,
         language: validatedData.language,
         result: validatedData.result,
+        score: validatedData.score ?? createData.score,
+        summary: validatedData.summary ?? createData.summary,
       });
 
       return history;
@@ -25,7 +27,10 @@ export const HistoryService = () => {
     try {
       if (!owner) return [];
 
-      const historyList = await History.find({ owner }).sort({ createdAt: -1 });
+      const historyList = await History.find({
+        $or: [{ owner }, { anonId: owner }],
+      }).sort({ createdAt: -1 });
+      
       return historyList;
     } catch (err) {
       throw new Error(err.message || "Error fetching history from database");

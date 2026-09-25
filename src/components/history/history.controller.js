@@ -8,27 +8,33 @@ export const HistoryController = () => {
 
   router.post("/", async (req, res) => {
     try {
-      const { mode, prompt, language, name, result, score, summary } =
-        req.body;
+      const { mode, prompt, language, score, summary, name } = req.body;
 
-      const visitorOwner = req.headers["x-visitor-id"];
+      const visitorId = req.headers["x-visitor-id"];
 
-      const createHistoryData = {
+      if (!visitorId) {
+        return res.status(400).json({
+          success: false,
+          error: "x-visitor-id header is missing!",
+        });
+      }
+
+      const historyData = {
         mode,
         prompt,
         language,
-        owner: visitorOwner,
-        name: name || "Analysis",
-        result,
+        name: name || repoName,
+        result: analysisResult,
         score,
         summary,
+        owner: visitorId,
       };
 
-      const newHistory = await createHistory(createHistoryData);
+      const newHistory = await createHistory(historyData);
 
       return res.status(200).json({
         success: true,
-        data: newHistory,
+        data: newHistory, 
       });
     } catch (err) {
       return res.status(400).json({
