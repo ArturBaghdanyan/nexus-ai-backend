@@ -8,10 +8,10 @@ export const HistoryController = () => {
 
   router.post("/", async (req, res) => {
     try {
-      const { mode, prompt, language, owner, name, result, score, summary } =
+      const { mode, prompt, language, name, result, score, summary } =
         req.body;
 
-      const visitorOwner = owner || req.headers["x-visitor-id"];
+      const visitorOwner = req.headers["x-visitor-id"] || req.body.owner;
 
       const createHistoryData = {
         mode,
