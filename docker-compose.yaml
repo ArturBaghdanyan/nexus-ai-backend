@@ -26,5 +26,6 @@ services:
   redis:
     image: redis:alpine
     container_name: nexus-ai-redis
+    restart: always
     expose:
       - "6379"
