@@ -11,14 +11,14 @@ export const HistoryController = () => {
       const { mode, prompt, language, name, result, score, summary } =
         req.body;
 
-      const visitorOwner = req.headers["x-visitor-id"] || req.body.owner;
+      const visitorOwner = req.headers["x-visitor-id"];
 
       const createHistoryData = {
         mode,
         prompt,
         language,
         owner: visitorOwner,
-        name,
+        name: name || "Analysis",
         result,
         score,
         summary,
