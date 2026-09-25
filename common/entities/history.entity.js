@@ -2,7 +2,10 @@ import mongoose, { Schema } from "mongoose";
 
 const historySchema = new Schema(
   {
-    anonId: { type: String, required: true, index: true },
+    anonId: { 
+      type: String, 
+      index: true 
+    },
     mode: {
       type: String,
       enum: ["url", "code"],
@@ -17,11 +20,15 @@ const historySchema = new Schema(
     },
     owner: {
       type: String,
+      index: true, // index ավելացրեք արագ GET-ի համար
     },
     name: {
       type: String,
     },
     result: {
+      type: String,
+    },
+    summary: {
       type: String,
     },
     score: {
@@ -30,8 +37,8 @@ const historySchema = new Schema(
     },
   },
   {
-    timestamps: true,
-  },
+    timestamps: true, 
+  }
 );
 
 const History = mongoose.model("History", historySchema);

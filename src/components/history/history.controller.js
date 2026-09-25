@@ -11,7 +11,6 @@ export const HistoryController = () => {
       const { mode, prompt, language, owner, name, result, score, summary } =
         req.body;
 
-      // Եթե body-ում owner չկա, վերցնում ենք header-ից
       const visitorOwner = owner || req.headers["x-visitor-id"];
 
       const createHistoryData = {
