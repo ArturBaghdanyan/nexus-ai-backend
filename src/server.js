@@ -4,6 +4,8 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
+import os from "os";
+
 import { ApiGateWay } from "./components/api-gateway/api-gateway.js";
 import { anonIdMiddleware } from "./middlewares/anonId.middleware.js";
 import cookieParser from "cookie-parser";
@@ -15,7 +17,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://localhost",
-  "https://nexus-review.netlify.app", 
+  "https://nexus-review.netlify.app",
 ];
 
 app.use(
@@ -37,7 +39,25 @@ app.use(
 
 app.use(express.json());
 app.use(cookieParser());
+
+app.use((req, res, next) => {
+  res.setHeader("X-Served-By", os.hostname());
+  console.log(
+    `[${new Date().toLocaleTimeString()}] Request handled by Container: ${os.hostname()}`,
+  );
+  next();
+});
+
 app.use(anonIdMiddleware);
+
+//Health check endpoint - for checking Load Balancer and scaling
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "OK",
+    containerId: os.hostname(),
+    uptime: process.uptime(),
+  });
+});
 
 app.use("/api", ApiGateWay());
 
