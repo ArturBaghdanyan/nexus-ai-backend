@@ -34,7 +34,7 @@ jobs:
           REDIS_PORT: 6379
           PORT: 3005
           MONGO_URI: mongodb://localhost:27017/testdb
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANTROPIC_API_KEY: ${{ secrets.ANTROPIC_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -63,7 +63,7 @@ jobs:
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /mnt/c/IT/real-projects/nexus-ai-backend
             docker compose pull
