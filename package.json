@@ -13,7 +13,7 @@
   },
   "scripts": {
     "start": "node src/server.js",
-    "test": "echo \"No tests specified yet\"",
+    "test": "echo \"No tests specified yet\" && exit 0",
     "dev": "nodemon src/server.js",
     "build": "tsc"
   },
