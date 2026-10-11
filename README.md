@@ -657,41 +657,6 @@ A production deployment could evolve into:
            MongoDB            Redis
 ```
 
-For a larger production system, additional components could be introduced:
-
-- TLS/HTTPS
-- Domain name
-- CI/CD
-- Monitoring
-- Centralized logging
-- Secrets management
-- Managed MongoDB
-- Redis cluster
-- Kubernetes
-- Cloud load balancer
-- Auto-scaling
-
----
-
-# 🎯 What This Project Teaches
-
-This project is more than a Node.js backend. It demonstrates how an application behaves as a **networked system**.
-
-The most important request path to understand is:
-
-```text
-Browser
-   │
-   │ HTTP request
-   ▼
-localhost:8080
-   │
-   ▼
-Nginx
-   │
-   │ Docker DNS
-   ▼
-nexus-ai-server:3005
    │
    ├──────────────► mongo:27017
    │
