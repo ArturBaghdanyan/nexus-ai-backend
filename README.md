@@ -26,7 +26,7 @@ A scalable, production-oriented backend infrastructure built with **Node.js/Expr
 │                       ▼                       │
 │  ┌─────────────────────────────────────────┐  │
 │  │     Node.js / Express Application       │  │
-│  │       nexus-ai-server :3005             │  │
+│  │       server :3005             │  │
 │  └────────────────────┬────────────────────┘  │
 │                       │                       │
 │             ┌─────────┴─────────┐             │
@@ -142,7 +142,7 @@ Docker provides internal DNS resolution.
 Conceptually:
 
 ```text
-nexus-ai-server ──► Docker DNS ──► Node.js container
+server ──► Docker DNS ──► Node.js container
 mongo            ──► Docker DNS ──► MongoDB container
 redis            ──► Docker DNS ──► Redis container
 ```
@@ -276,7 +276,7 @@ The backend can be scaled horizontally.
 For example:
 
 ```bash
-docker compose up -d --scale nexus-ai-server=3
+docker compose up -d --scale server=3
 ```
 
 The architecture becomes:
@@ -380,7 +380,7 @@ Expected architecture:
 
 ```text
 nginx
-nexus-ai-server
+server
 mongo
 redis
 ```
@@ -441,7 +441,7 @@ It shows which backend container processed the request.
 View Node.js logs:
 
 ```bash
-docker compose logs -f nexus-ai-server
+docker compose logs -f server
 ```
 
 View Nginx logs:
@@ -511,7 +511,7 @@ docker compose logs -f
 ### Restart a service
 
 ```bash
-docker compose restart nexus-ai-server
+docker compose restart server
 ```
 
 ### Open a shell inside a container
@@ -527,7 +527,7 @@ docker exec -it <container-name> sh
 Run three backend replicas:
 
 ```bash
-docker compose up -d --scale nexus-ai-server=3
+docker compose up -d --scale server=3
 ```
 
 Check them:
@@ -539,9 +539,9 @@ docker compose ps
 You should see multiple instances:
 
 ```text
-nexus-ai-server-1
-nexus-ai-server-2
-nexus-ai-server-3
+server-1
+server-2
+server-3
 ```
 
 Then test:
@@ -591,7 +591,7 @@ Container → Container
 ### DNS
 
 ```text
-nexus-ai-server
+server
 mongo
 redis
 ```
