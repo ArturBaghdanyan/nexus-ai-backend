@@ -8,26 +8,18 @@ export const HistoryController = () => {
 
   router.post("/", async (req, res) => {
     try {
-      const { mode, prompt, language, score, summary, name } = req.body;
-
-      const visitorId = req.headers["x-visitor-id"];
-
-      if (!visitorId) {
-        return res.status(400).json({
-          success: false,
-          error: "x-visitor-id header is missing!",
-        });
-      }
+      const { mode, prompt, language, score, summary, name, result } = req.body;
 
       const historyData = {
+        anonId: req.anonId,
         mode,
         prompt,
         language,
-        name: name || repoName,
-        result: analysisResult,
+        name,
+        result,
         score,
         summary,
-        owner: visitorId,
+        owner: req.anonId,
       };
 
       const newHistory = await createHistory(historyData);
@@ -46,8 +38,10 @@ export const HistoryController = () => {
 
   router.get("/", async (req, res) => {
     try {
-      const owner = req.headers["x-visitor-id"];
-      const historyList = await getHistory(owner);
+      const historyList = await getHistory([
+        req.anonId,
+        req.legacyAnonId,
+      ]);
 
       return res.status(200).json({
         success: true,

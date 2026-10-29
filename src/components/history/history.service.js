@@ -23,14 +23,15 @@ export const HistoryService = () => {
     }
   };
 
-  const getHistory = async (owner) => {
+  const getHistory = async (anonIds) => {
     try {
-      if (!owner) return [];
+      const visitorIds = [...new Set(anonIds.filter(Boolean))];
+      if (visitorIds.length === 0) return [];
 
       const historyList = await History.find({
-        $or: [{ owner }, { anonId: owner }],
+        anonId: { $in: visitorIds },
       }).sort({ createdAt: -1 });
-      
+
       return historyList;
     } catch (err) {
       throw new Error(err.message || "Error fetching history from database");

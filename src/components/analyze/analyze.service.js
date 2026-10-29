@@ -4,127 +4,198 @@ import { HistoryDto } from "../../../common/dtos/history.dto.js";
 import { getGroq } from "../../lib/groq.js";
 import { fetchRepoContext } from "../../lib/github.js";
 
-export const generateReposity = async (createData) => {
+const MAX_CONTEXT_CHARS = 24000; // ~6k tokens, keeps requests under Groq limits
+const MAX_FILE_CHARS = 4000;
+
+class AppError extends Error {
+  constructor(message, status = 400) {
+    super(message);
+    this.status = status;
+  }
+}
+
+const validate = (fn, input) => {
   try {
-    let owner = createData.owner;
-    let name = createData.name;
+    return fn(input);
+  } catch (err) {
+    throw new AppError(err.message, 400);
+  }
+};
 
-    if (
-      createData.mode === "url" &&
-      createData.prompt &&
-      (createData.prompt.includes("github.com") ||
-        createData.prompt.includes("gitlab.com") ||
-        createData.prompt.includes("bitbucket.com"))
-    ) {
-      const cleanUrl = createData.prompt.replace(/\/$/, "");
-      const parts = cleanUrl.split("/");
+const parseGitHubRepositoryUrl = (value) => {
+  let url;
+  try {
+    url = new URL(String(value).trim());
+  } catch {
+    throw new AppError("Enter a valid GitHub repository URL.");
+  }
 
-      name = parts.pop();
-      owner = parts.pop();
+  if (!["http:", "https:"].includes(url.protocol)) {
+    throw new AppError("Only http(s) GitHub URLs are supported.");
+  }
+  if (!["github.com", "www.github.com"].includes(url.hostname.toLowerCase())) {
+    throw new AppError("Only GitHub repository URLs are supported.");
+  }
+
+  const parts = url.pathname.split("/").filter(Boolean);
+  if (parts.length < 2) {
+    throw new AppError("Use the format github.com/owner/repository.");
+  }
+
+  return { owner: parts[0], name: parts[1].replace(/\.git$/i, "") };
+};
+
+const buildRepoContent = (owner, name, ctx) => {
+  let total = 0;
+  const blocks = [];
+  let truncated = ctx.truncated;
+
+  for (const f of ctx.files ?? []) {
+    let content = String(f.content ?? "");
+    if (content.length > MAX_FILE_CHARS) {
+      content = content.slice(0, MAX_FILE_CHARS) + "\n...[truncated]";
+      truncated = true;
     }
-
-    const validatedData = GenerateDto({
-      anonId: createData.anonId,
-      mode: createData.mode,
-      owner,
-      name,
-      prompt: createData.prompt,
-      language: createData.language,
-    });
-
-    let userContent;
-    let repoMeta = null;
-
-    if (validatedData.mode === "url" && owner && name) {
-      const repoContext = await fetchRepoContext(owner, name);
-      repoMeta = repoContext;
-
-      const filesBlock = repoContext.files
-        .map((f) => `--- File: ${f.path} ---\n${f.content}`)
-        .join("\n\n");
-
-      userContent = [
-        `Repository: ${owner}/${name}`,
-        `Default branch: ${repoContext.defaultBranch}`,
-        `Stars: ${repoContext.stars}`,
-        `Last commit: ${repoContext.lastCommitDate ?? "unknown"}`,
-        repoContext.truncated
-          ? "Note: some files were truncated or skipped due to size limits."
-          : "",
-        "",
-        "Files:",
-        filesBlock || "(no relevant source files found)",
-      ]
-        .filter(Boolean)
-        .join("\n");
-    } else {
-      userContent = `Review this code:\n\n${validatedData.prompt}`;
+    const block = `--- File: ${f.path} ---\n${content}`;
+    if (total + block.length > MAX_CONTEXT_CHARS) {
+      truncated = true;
+      break;
     }
+    total += block.length;
+    blocks.push(block);
+  }
 
-    const aiResponse = await getGroq().chat.completions.create({
+  return [
+    `Repository: ${owner}/${name}`,
+    `Default branch: ${ctx.defaultBranch}`,
+    `Stars: ${ctx.stars}`,
+    `Last commit: ${ctx.lastCommitDate ?? "unknown"}`,
+    truncated
+      ? "Note: some files were truncated or skipped due to size limits."
+      : "",
+    "",
+    "Files:",
+    blocks.join("\n\n") || "(no relevant source files found)",
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
+const parseAiJson = (raw) => {
+  try {
+    const cleaned = raw.replace(/```json|```/g, "").trim();
+    const obj = JSON.parse(cleaned);
+    const score = Number(obj.score);
+    return {
+      score: Number.isFinite(score)
+        ? Math.min(100, Math.max(0, Math.round(score)))
+        : null,
+      summary: typeof obj.summary === "string" ? obj.summary : "",
+      result:
+        typeof obj.result === "string"
+          ? obj.result
+          : JSON.stringify(obj.result ?? obj, null, 2),
+    };
+  } catch {
+    console.error("Failed to parse AI response as JSON:", raw);
+    return { score: null, summary: "", result: raw };
+  }
+};
+
+export const generateReposity = async (createData) => {
+  let owner = createData.owner;
+  let name = createData.name;
+
+  if (createData.mode === "url") {
+    ({ owner, name } = parseGitHubRepositoryUrl(createData.prompt));
+  }
+
+  const language = createData.language || "English";
+
+  const validatedData = validate(GenerateDto, {
+    anonId: createData.anonId,
+    mode: createData.mode,
+    owner,
+    name,
+    prompt: createData.prompt,
+    language,
+  });
+
+  let userContent;
+  if (validatedData.mode === "url") {
+    let repoContext;
+    try {
+      repoContext = await fetchRepoContext(owner, name);
+    } catch (err) {
+      console.error("GitHub fetch failed:", err);
+      if (/rate limit|quota/i.test(err.message ?? "")) {
+        throw new AppError(
+          "GitHub API rate limit exceeded. Try again later or configure a GitHub token.",
+          429,
+        );
+      }
+      throw new AppError(`Could not load repository: ${err.message}`, 502);
+    }
+    userContent = buildRepoContent(owner, name, repoContext);
+  } else {
+    userContent = `Review this code:\n\n${validatedData.prompt.slice(0, MAX_CONTEXT_CHARS)}`;
+  }
+
+  let aiResponse;
+  try {
+    aiResponse = await getGroq().chat.completions.create({
       model: "openai/gpt-oss-120b",
       response_format: { type: "json_object" },
+      max_completion_tokens: 4000,
       messages: [
         {
           role: "system",
           content: `You are an expert code reviewer. Analyze the provided repository files or code in ${validatedData.language}.
 
-        Respond ONLY with a valid JSON object, no markdown fences, no extra text, in this exact shape:
-        {
-        "score": <integer 0-100, based strictly on code quality, structure, security, and best practices actually observed>,
-        "summary": "<1-2 sentence overall summary>",
-        "result": "<full markdown-formatted detailed review>"
-        }
+Respond ONLY with a valid JSON object, no markdown fences, no extra text, in this exact shape:
+{
+  "score": <integer 0-100, based strictly on code quality, structure, security, and best practices actually observed>,
+  "summary": "<1-2 sentence overall summary>",
+  "result": "<full markdown-formatted detailed review as a single string>"
+}
 
-        Base the score ONLY on what is actually shown to you. If information is missing (e.g. no test files were found), reflect that in a lower score and mention it explicitly rather than guessing or defaulting.`,
+Base the score ONLY on what is actually shown to you. If information is missing (e.g. no test files were found), reflect that in a lower score and mention it explicitly rather than guessing or defaulting.`,
         },
-        {
-          role: "user",
-          content: userContent,
-        },
+        { role: "user", content: userContent },
       ],
     });
-
-    const rawContent = aiResponse.choices[0].message.content;
-
-    let parsed;
-    try {
-      const cleaned = rawContent.replace(/```json|```/g, "").trim();
-      parsed = JSON.parse(cleaned);
-    } catch (parseErr) {
-      console.error("Failed to parse AI response as JSON:", rawContent);
-      parsed = {
-        score: null,
-        summary: "",
-        result: rawContent,
-      };
-    }
-
-    const createHistoryData = HistoryDto({
-      anonId: createData.anonId,
-      mode: createData.mode,
-      prompt: createData.prompt,
-      language: createData.language,
-      owner,
-      name,
-      result: parsed.result,
-      summary: parsed.summary,
-      score: parsed.score ?? null,
-    });
-
-    const history = await History.create(createHistoryData);
-    return history;
   } catch (err) {
-    if (
-      err.message &&
-      (err.message.includes("API rate limit exceeded") ||
-        err.message.includes("rate limit") ||
-        err.message.includes("quota exhausted"))
-    ) {
-      throw new Error(
-        "GitHub API rate limit exceeded. Please try again later or configure a GitHub token.",
+    console.error("Groq request failed:", err?.status, err?.message);
+    if (err?.status === 429) {
+      throw new AppError(
+        "AI provider rate limit reached. Try again shortly.",
+        429,
       );
     }
-    throw new Error(err.message || "Error creating repository in database");
+    if (err?.status === 413) {
+      throw new AppError("Repository is too large to analyze.", 413);
+    }
+    throw new AppError(`AI provider error: ${err?.message}`, 502);
   }
+
+  const rawContent = aiResponse.choices?.[0]?.message?.content;
+  if (typeof rawContent !== "string" || !rawContent.trim()) {
+    throw new AppError("The AI provider returned an empty analysis.", 502);
+  }
+
+  const parsed = parseAiJson(rawContent);
+
+  const createHistoryData = validate(HistoryDto, {
+    anonId: createData.anonId,
+    mode: createData.mode,
+    prompt: createData.prompt,
+    language,
+    owner,
+    name,
+    result: parsed.result || "No analysis was returned.",
+    summary: parsed.summary,
+    score: parsed.score,
+  });
+
+  return History.create(createHistoryData);
 };

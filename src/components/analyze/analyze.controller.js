@@ -14,21 +14,18 @@ export const AnalyzeController = () => {
           error: "Prompt (URL or code) is required",
         });
       }
-      const createRepoData = {
+
+      const data = await generateReposity({
         mode,
         prompt,
         language,
         anonId: req.anonId,
-      };
-
-      const createRepos = await generateReposity(createRepoData);
-
-      res.status(200).json({
-        success: true,
-        data: createRepos,
       });
+
+      res.status(200).json({ success: true, data });
     } catch (err) {
-      res.status(400).json({
+      console.error("Analyze error:", err);
+      res.status(err.status || 500).json({
         success: false,
         error: err.message,
       });

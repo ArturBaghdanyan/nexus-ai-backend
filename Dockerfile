@@ -10,4 +10,4 @@ COPY . .
 
 EXPOSE 3005
 
-CMD ["node", "src/server.js"] 
+CMD ["node", "--watch", "src/server.js"]

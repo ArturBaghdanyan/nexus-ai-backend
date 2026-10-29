@@ -5,8 +5,8 @@ export const GenerateDto = (data) => {
     throw new Error("anonId is required and must be a string");
   }
 
-  if (!mode || typeof mode !== "string") {
-    throw new Error("Mode is required and must be a string");
+  if (!mode || !["url", "code"].includes(mode)) {
+    throw new Error("Mode is required and must be either 'url' or 'code'");
   }
 
   if (mode === "url") {

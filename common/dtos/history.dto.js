@@ -11,7 +11,7 @@ export const HistoryDto = (data) => {
     summary,
   } = data;
 
-  const visitorIdentifier = owner || anonId;
+  const visitorIdentifier = anonId || owner;
 
   if (
     !visitorIdentifier ||
@@ -33,13 +33,13 @@ export const HistoryDto = (data) => {
 
   return {
     anonId: visitorIdentifier.trim(),
-    owner: visitorIdentifier.trim(),
+    owner: typeof owner === "string" && owner.trim() ? owner.trim() : undefined,
     mode,
     prompt: prompt.trim(),
     language: language ? language.trim() : undefined,
     name: name ? name.trim() : undefined,
     result: result ? result.trim() : undefined,
     summary: summary ? summary.trim() : undefined,
-    score: typeof score === "number" ? score : 0,
+    score: typeof score === "number" ? score : null,
   };
 };

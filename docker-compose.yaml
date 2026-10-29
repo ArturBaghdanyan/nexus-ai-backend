@@ -8,8 +8,13 @@ services:
     container_name: nexus-ai-server
     env_file:
       - .env
+    ports:
+      - "3005:3005"
     expose:
       - "3005"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - .:/app
       - /app/node_modules
@@ -23,7 +28,7 @@ services:
       dockerfile: Dockerfile.nginx
     container_name: nexus-ai-nginx
     ports:
-      - "8080:80"
+      - "80:80"
     depends_on:
       - nexus-ai-server
 

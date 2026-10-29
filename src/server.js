@@ -17,19 +17,13 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://127.0.0.1:3000",
   "http://localhost",
-  "https://nexus-review.netlify.app",
 ];
 
 app.use(
   cors({
     origin: function (origin, callback) {
       if (!origin) return callback(null, true);
-
-      if (allowedOrigins.includes(origin) || origin.endsWith(".netlify.app")) {
-        return callback(null, true);
-      } else {
-        return callback(new Error("CORS policy violation: Origin not allowed"));
-      }
+      return callback(null, true);
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -50,7 +44,6 @@ app.use((req, res, next) => {
 
 app.use(anonIdMiddleware);
 
-//Health check endpoint - for checking Load Balancer and scaling
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
